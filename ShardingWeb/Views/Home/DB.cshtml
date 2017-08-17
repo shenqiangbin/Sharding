@@ -3,7 +3,33 @@
     ViewBag.Title = "DB";
 }
 
-<h2>DB</h2>
+<h2>数据库管理</h2>
 
-<a href="@Url.Action("InitDB", "Home")">初始化数据库</a>
-<a href="@Url.Action("InitData", "Home")">初始化数据</a>
+<p>
+    数据库使用的是MySQL数据库
+    <br />
+    初始化数据库之前，首先在本地数据库中新增名字为“shardingdb”的数据库。数据库连接字符串在MySqlHelper.cs文件中。
+    <br />
+    新建好数据库中，点击【初始化数据库】完成建表操作。
+    <br />
+    我们这里只建立了一个日志表。然后插入大量数据。
+    <br />
+    然后点击【初始化数据】开始插入数据。
+</p>
+
+<a href="@Url.Action("InitDB", "Home")" onclick="loading()">初始化数据库</a>
+<a href="@Url.Action("InitData", "Home")" onclick="loading()">初始化数据</a>
+
+<p>
+    <h4>消息：</h4>
+    <div id="msg">
+        @ViewBag.Msg
+    </div>
+</p>
+
+
+<script>
+    function loading() {
+        $("#msg").html("运行中...");
+    }
+</script>
