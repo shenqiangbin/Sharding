@@ -51,8 +51,9 @@
     }
 </table>
 
+记录条数：<span>@(string.Format("{0:0,0}", ViewBag.TotalCount))</span> 总页数： <span>@(string.Format("{0:0,0}", userResult.PageCount))</span>
 @Html.PagedListPager(userResult,
-        page => Url.Action("Log", new { page = page, username = ViewBag.UserName }), PagedListRenderOptions.Classic)
+        page => Url.Action("Log", new { page = page, username = ViewBag.UserName }), PagedListRenderOptions.ClassicPlusFirstAndLast)
 
 <h4 id="msg">
     @ViewBag.Msg

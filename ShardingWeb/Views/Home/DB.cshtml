@@ -3,6 +3,10 @@
     ViewBag.Title = "DB";
 }
 
+<style>
+   
+</style>
+
 <h2>数据库管理</h2>
 
 <p>
@@ -18,18 +22,57 @@
 </p>
 
 <a href="@Url.Action("InitDB", "Home")" onclick="loading()">初始化数据库</a>
-<a href="@Url.Action("InitData", "Home")" onclick="loading()">初始化数据</a>
+<a href="@Url.Action("InitData", "Home")" onclick="loading()">初始化数据（阻塞的形式）</a>
+<a href="#" onclick="asyncFunc()">初始化数据(异步，显示进度)</a>
 
 <p>
     <h4>消息：</h4>
     <div id="msg">
         @ViewBag.Msg
     </div>
+
+    <h4>异步任务状态：</h4>
+    <div id="asyncMsg">
+        <div></div>
+    </div>
 </p>
 
+@section footer{
+    <script>
+        function loading() {
+            $("#msg").html("运行中...");
+        }
 
-<script>
-    function loading() {
-        $("#msg").html("运行中...");
-    }
-</script>
+        function asyncFunc() {
+            $.get('/Home/AsyncInitData', function (data) {
+                showMsg("状态：" + data.status + " " + data.msg);
+
+                var timer = setInterval(function () {
+                    $.get('/home/GetTaskStatus', function (data) {
+                        if (!data.msg) data.msg = "";
+                        showMsg("状态：" + data.status + " " + data.msg + " " + getTaskStatusDesc(data.taskStatus) + "  当前存在的任务量：" + data.taskCount);
+                        if (data.taskStatus.StatusDesc == "执行结束")
+                            clearInterval(timer);
+                    })
+                }, 1000 * 2);
+
+            });
+        }        
+
+        function showMsg(msg) {
+            $(".active").removeClass('active');
+            $("#asyncMsg").children(":first").prepend("<div class='active'>" + msg + "</div>");
+        }
+
+        function getTaskStatusDesc(taskStatus){
+            if(taskStatus){
+                return (taskStatus.StatusDesc +
+                " 总条数 " + taskStatus.TotalNum +
+                " 处理条数 " + taskStatus.HandledNum + " "
+                + taskStatus.Msg + " ").replace('undefined', '').replace('undefined', '').replace('undefined', '');
+            }
+            return "";
+        }
+
+    </script>
+}

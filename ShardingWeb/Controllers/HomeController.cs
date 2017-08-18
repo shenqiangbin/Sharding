@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Web;
 using System.Web.Mvc;
 
@@ -51,7 +52,7 @@ namespace ShardingWeb.Controllers
 
                 string format = @"INSERT INTO `log` (`date`, `thread`, `level`, `logger`, `message`, `userid`) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}');";
 
-                int num = 100 * 10000; //记录条数
+                int num = 5 * 100 * 10000; //记录条数
                 StringBuilder buidler = new StringBuilder();
                 int count = 1;
 
@@ -77,6 +78,89 @@ namespace ShardingWeb.Controllers
             }
 
             return View("DB");
+        }
+
+        public JsonResult AsyncInitData()
+        {
+            try
+            {
+                Session["abc"] = "abc";
+                TaskStatus.TaskList.Add(Session.SessionID, null);
+
+                Thread thread = new Thread(new ParameterizedThreadStart(InitDataMethod));
+                thread.IsBackground = true;
+                thread.Start(Session.SessionID);
+                return Json(new { status = "ok", msg = "开始执行" }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { status = "fail", msg = ex.Message }, JsonRequestBehavior.AllowGet);
+                throw;
+            }
+
+        }
+
+        public JsonResult GetTaskStatus()
+        {
+            try
+            {
+                var status = TaskStatus.TaskList[Session.SessionID];
+                if (status.StatusDesc == "执行结束")
+                    TaskStatus.TaskList.Remove(Session.SessionID);
+
+                return Json(new { status = "ok", taskStatus = status, taskCount = TaskStatus.TaskList.Count }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { status = "fail", msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        public void InitDataMethod(object sessionIdObj)
+        {
+            try
+            {
+                string sessionId = sessionIdObj.ToString();
+                DateTime startTime = DateTime.Now;
+
+                string format = @"INSERT INTO `log` (`date`, `thread`, `level`, `logger`, `message`, `userid`) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}');";
+
+                int num = 1 * 100 * 10000; //记录条数
+
+                TaskStatus taskStatus = new TaskStatus() { HandledNum = 0, StatusDesc = "执行中...", TotalNum = num };
+                TaskStatus.TaskList[sessionId] = taskStatus;
+
+                StringBuilder buidler = new StringBuilder();
+                int count = 1;
+
+                for (int i = 0; i < num; i++)
+                {
+                    if (i != 0 && i % 1000 == 0) // 每多少条提交一次
+                    {
+                        MySqlHelper.ExeTransaction(buidler.ToString());
+                        taskStatus.HandledNum = count;
+                        TaskStatus.TaskList[sessionId] = taskStatus;
+                        buidler.Clear();
+                    }
+                    buidler.Append(string.Format(format, DateTime.Now, count, count, "logger", "message" + count, "user"));
+                    count++;
+                }
+
+                if (buidler.ToString() != "")
+                {
+                    MySqlHelper.ExeTransaction(buidler.ToString());
+                    taskStatus.HandledNum = count;
+                    TaskStatus.TaskList[sessionId] = taskStatus;
+                }
+
+                taskStatus.StatusDesc = "执行结束";
+                taskStatus.Msg = $"数据录入完成。条数 {num} 用时： {(DateTime.Now - startTime).TotalSeconds} 秒";
+
+            }
+            catch (Exception ex)
+            {
+                //ViewBag.Msg = ex.Message;
+            }
         }
 
         public ActionResult Log(int page = 1)
@@ -114,10 +198,11 @@ where {0} ";
             //para.Add($"@userName", "%" + query.UserName + "%");
 
             var list = MySqlHelper.Query<Log>(selectSql, para);
-            var totalCount= MySqlHelper.ExecuteScalar(countSql, para);
+            var totalCount = MySqlHelper.ExecuteScalar(countSql, para);
 
             var pageList = new StaticPagedList<Log>(list, page, itemsPerPage, totalCount);
             ViewBag.UserResult = pageList;
+            ViewBag.TotalCount = totalCount;
 
             ViewBag.Msg = $"用时： {(DateTime.Now - startTime).TotalSeconds} 秒";
 

@@ -16,7 +16,14 @@ textarea {
     max-width: 280px;
 }
 
-p{
-    line-height:24px;
+p {
+    line-height: 24px;
 }
 
+a {
+    margin-right: 50px;
+}
+
+.active {
+    border: 1px dotted red;
+}

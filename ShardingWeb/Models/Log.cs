@@ -16,4 +16,20 @@ namespace ShardingWeb.Models
         public string Message { get; set; }
         public string UserId { get; set; }
     }
+
+    public class TaskStatus
+    {
+        public string StatusDesc { get; set; }
+        public int TotalNum { get; set; }
+        public int HandledNum { get; set; }
+        public string Msg { get; internal set; }
+
+        public TaskStatus()
+        {
+            Msg = "";
+        }
+
+
+        public static SortedDictionary<string, TaskStatus> TaskList = new SortedDictionary<string, TaskStatus>();
+    }
 }
