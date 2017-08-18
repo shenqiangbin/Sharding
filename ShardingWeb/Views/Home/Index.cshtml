@@ -3,7 +3,52 @@
     ViewBag.Title = "Index";
 }
 
-<h2>Index</h2>
+<h2>大数据量模拟</h2>
 
-@Html.ActionLink("数据库管理", "DB", "Home")
-@Html.ActionLink("查看数据", "Log", "Home")
+<p>
+    思路：建立一张日志表，然后插入大量数据，有一个列表来展示数据。
+    <br />
+    通过下面的两个按钮【数据库管理】和【查看数据】来初始化数据和查看数据量情况。直至加载明显变慢。
+    <br />
+    大概步骤如下：
+    <ol>
+        <li>点击【数据库管理】按钮</li>
+        <li>点击【初始化数据库】按钮</li>
+        <li>点击【初始化数据(异步，显示进度)】按钮</li>
+    </ol>
+</p>
+
+<div class="well">
+    @Html.ActionLink("数据库管理", "DB", "Home", new { @class = "al" })
+    @Html.ActionLink("查看数据", "Log", "Home", new { @class = "al" })
+</div>
+
+<h4>情况分析</h4>
+<p>
+    我模拟的情况是
+    <div class="well">
+        记录条数：42,070,000 总页数： 4,207,000
+    </div>
+    <div class="well">
+        第一页加载用时： 12-13秒左右
+    </div>  
+</p>
+
+<h4>解决分析</h4>
+
+<p>
+    首先查看执行的SQL语句：
+    <code>
+        @Html.Encode(@"select * from (select *,(@rowNum:=@rowNum+1) as Number from (
+    SELECT
+    *
+    FROM log
+    where 1 = 1 order by date desc  limit 42069990, 10
+    )t,(Select (@rowNum :=0) ) b) tt")
+    </code>
+
+    首先考虑建立索引
+    <code>
+        CREATE INDEX `idx_log_date`  ON `shardingdb`.`log` (date) COMMENT '' ALGORITHM DEFAULT LOCK DEFAULT
+    </code>
+</p>

@@ -18,12 +18,14 @@
     <br />
     我们这里只建立了一个日志表。然后插入大量数据。
     <br />
-    然后点击【初始化数据】开始插入数据。
+    然后点击【初始化数据】开始插入数据。（多次点击按钮，可继续插入数据）
 </p>
 
-<a href="@Url.Action("InitDB", "Home")" onclick="loading()">初始化数据库</a>
-<a href="@Url.Action("InitData", "Home")" onclick="loading()">初始化数据（阻塞的形式）</a>
-<a href="#" onclick="asyncFunc()">初始化数据(异步，显示进度)</a>
+<div class="well">
+    <a href="@Url.Action("InitDB", "Home")" class="al" onclick="loading()">初始化数据库</a>
+    <a href="@Url.Action("InitData", "Home")" class="al" onclick="loading()">初始化数据（阻塞的形式）</a>
+    <a href="#" onclick="asyncFunc()">初始化数据(异步，显示进度)</a>
+</div>
 
 <p>
     <h4>消息：</h4>

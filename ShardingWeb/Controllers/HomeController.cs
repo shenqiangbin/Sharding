@@ -123,7 +123,7 @@ namespace ShardingWeb.Controllers
                 string sessionId = sessionIdObj.ToString();
                 DateTime startTime = DateTime.Now;
 
-                string format = @"INSERT INTO `log` (`date`, `thread`, `level`, `logger`, `message`, `userid`) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}');";
+                string format = @"INSERT INTO `log` (`date`, `thread`, `level`, `logger`, `message`, `userid`, `enable`) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}');";
 
                 int num = 1 * 100 * 10000; //记录条数
 
@@ -132,6 +132,8 @@ namespace ShardingWeb.Controllers
 
                 StringBuilder buidler = new StringBuilder();
                 int count = 1;
+                var time = DateTime.Now.AddHours(1);
+                bool flag = true;
 
                 for (int i = 0; i < num; i++)
                 {
@@ -142,8 +144,9 @@ namespace ShardingWeb.Controllers
                         TaskStatus.TaskList[sessionId] = taskStatus;
                         buidler.Clear();
                     }
-                    buidler.Append(string.Format(format, DateTime.Now, count, count, "logger", "message" + count, "user"));
+                    buidler.Append(string.Format(format, time = time.AddSeconds(1), count, count, "logger", "message" + count, "user", flag ? 1 : 0));
                     count++;
+                    flag = !flag;
                 }
 
                 if (buidler.ToString() != "")
@@ -184,7 +187,7 @@ SELECT
  FROM log
 where {0} ";
 
-            string order = "id asc";
+            string order = "date desc";
 
             int currentPage = page;
             int itemsPerPage = 10;
