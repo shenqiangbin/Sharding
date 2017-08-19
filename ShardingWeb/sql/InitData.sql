@@ -43,3 +43,7 @@ CREATE INDEX `idx_log_date` ON `log` (date desc) COMMENT '' ALGORITHM DEFAULT LO
 SELECT * FROM log where 1 = 1 order by date desc limit 41000000, 10; /* 199s */
 SELECT * FROM log WHERE id >= (SELECT id FROM log LIMIT 41000000, 1)   order by date desc LIMIT 10;
 
+/*结论：*/
+/*必须加索引*/
+/*业务上处理：添加查询时间段*/
+
