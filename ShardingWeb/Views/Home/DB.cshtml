@@ -76,5 +76,39 @@
             return "";
         }
 
+
+        var socketClient = {
+            socket: '',
+            init: function () {
+                var url = 'ws://' + window.location.hostname + ":" + window.location.port;
+                url += "/home/SocketHandle";
+                this.socket = new WebSocket(url);
+
+                this.socket.onopen = function (event) {
+                    console.log("socket open");
+
+                    //socketClient.socket.send("insertData");
+
+                    socketClient.socket.onmessage = function (event) {
+                        console.log('received a message', event);
+                        var data = event.data;
+                       
+                    };
+
+                    socketClient.socket.onclose = function (event) {
+                        console.log('socket closed', event);
+                    };
+
+                    socketClient.socket.onerror = function (event) {
+                        console.log(JSON.stringify(event));
+                    }
+                };
+            },
+            close: function () {
+                socketClient.socket.close();
+            }
+        }
+
+        socketClient.init();
     </script>
 }

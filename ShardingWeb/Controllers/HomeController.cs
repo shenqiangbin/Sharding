@@ -9,6 +9,9 @@ using System.Text;
 using System.Threading;
 using System.Web;
 using System.Web.Mvc;
+using System.Threading.Tasks;
+using System.Web.WebSockets;
+using System.Net.WebSockets;
 
 namespace ShardingWeb.Controllers
 {
@@ -80,12 +83,98 @@ namespace ShardingWeb.Controllers
             return View("DB");
         }
 
+        public void SocketHandle()
+        {
+            if (HttpContext.IsWebSocketRequest)
+            {
+                HttpContext.AcceptWebSocketRequest(ProcessWS);
+            }
+        }
+
+        private async Task ProcessWS(AspNetWebSocketContext arg)
+        {
+            WebSocket socket = arg.WebSocket;
+            while (true)
+            {
+                ArraySegment<byte> buffer = new ArraySegment<byte>(new byte[1024]);
+                WebSocketReceiveResult result = await socket.ReceiveAsync(buffer, CancellationToken.None);
+                if (socket.State == WebSocketState.Open)
+                {
+                    string message = Encoding.UTF8.GetString(buffer.Array, 0, result.Count);
+
+                    if(message == "insertData")
+                    {
+                        try
+                        {                           
+                            DateTime startTime = DateTime.Now;
+
+                            string format = @"INSERT INTO `log` (`date`, `thread`, `level`, `logger`, `message`, `userid`, `enable`) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}');";
+
+                            int num = 1 * 100 * 10000; //记录条数
+
+                            TaskStatusResult taskStatus = new TaskStatusResult() { HandledNum = 0, StatusDesc = "执行中...", TotalNum = num };
+                            buffer = new ArraySegment<byte>(Encoding.UTF8.GetBytes(taskStatus.StatusDesc));
+                            await socket.SendAsync(buffer, WebSocketMessageType.Text, true, CancellationToken.None);
+
+                            StringBuilder buidler = new StringBuilder();
+                            int count = 1;
+                            var time = DateTime.Now.AddHours(1);
+                            bool flag = true;
+
+                            for (int i = 0; i < num; i++)
+                            {
+                                if (i != 0 && i % 1000 == 0) // 每多少条提交一次
+                                {
+                                    MySqlHelper.ExeTransaction(buidler.ToString());
+                                    taskStatus.HandledNum = count;                                   
+                                    buidler.Clear();
+                                    buffer = new ArraySegment<byte>(Encoding.UTF8.GetBytes(taskStatus.HandledNum.ToString()));
+                                    await socket.SendAsync(buffer, WebSocketMessageType.Text, true, CancellationToken.None);
+                                }
+                                buidler.Append(string.Format(format, time = time.AddSeconds(1), count, count, "logger", "message" + count, "user", flag ? 1 : 0));
+                                count++;
+                                flag = !flag;
+                            }
+
+                            if (buidler.ToString() != "")
+                            {
+                                MySqlHelper.ExeTransaction(buidler.ToString());
+                                taskStatus.HandledNum = count;
+                            }
+
+                            taskStatus.StatusDesc = "执行结束";
+                            taskStatus.Msg = $"数据录入完成。条数 {num} 用时： {(DateTime.Now - startTime).TotalSeconds} 秒";
+
+                        }
+                        catch (Exception ex)
+                        {
+                            //ViewBag.Msg = ex.Message;
+                        }
+                    }
+
+                    string returnMsg = GetReturnMsg(message);
+
+                    buffer = new ArraySegment<byte>(Encoding.UTF8.GetBytes(returnMsg));
+                    await socket.SendAsync(buffer, WebSocketMessageType.Text, true, CancellationToken.None);
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        private string GetReturnMsg(string msg)
+        {
+            return $"hello,{msg}";
+        }
+
         public JsonResult AsyncInitData()
         {
             try
             {
                 Session["abc"] = "abc";
-                TaskStatus.TaskList.Add(Session.SessionID, null);
+                TaskStatusResult.TaskList.Add(Session.SessionID, null);
 
                 Thread thread = new Thread(new ParameterizedThreadStart(InitDataMethod));
                 thread.IsBackground = true;
@@ -104,11 +193,11 @@ namespace ShardingWeb.Controllers
         {
             try
             {
-                var status = TaskStatus.TaskList[Session.SessionID];
+                var status = TaskStatusResult.TaskList[Session.SessionID];
                 if (status.StatusDesc == "执行结束")
-                    TaskStatus.TaskList.Remove(Session.SessionID);
+                    TaskStatusResult.TaskList.Remove(Session.SessionID);
 
-                return Json(new { status = "ok", taskStatus = status, taskCount = TaskStatus.TaskList.Count }, JsonRequestBehavior.AllowGet);
+                return Json(new { status = "ok", taskStatus = status, taskCount = TaskStatusResult.TaskList.Count }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
@@ -127,8 +216,8 @@ namespace ShardingWeb.Controllers
 
                 int num = 1 * 100 * 10000; //记录条数
 
-                TaskStatus taskStatus = new TaskStatus() { HandledNum = 0, StatusDesc = "执行中...", TotalNum = num };
-                TaskStatus.TaskList[sessionId] = taskStatus;
+                TaskStatusResult taskStatus = new TaskStatusResult() { HandledNum = 0, StatusDesc = "执行中...", TotalNum = num };
+                TaskStatusResult.TaskList[sessionId] = taskStatus;
 
                 StringBuilder buidler = new StringBuilder();
                 int count = 1;
@@ -141,7 +230,7 @@ namespace ShardingWeb.Controllers
                     {
                         MySqlHelper.ExeTransaction(buidler.ToString());
                         taskStatus.HandledNum = count;
-                        TaskStatus.TaskList[sessionId] = taskStatus;
+                        TaskStatusResult.TaskList[sessionId] = taskStatus;
                         buidler.Clear();
                     }
                     buidler.Append(string.Format(format, time = time.AddSeconds(1), count, count, "logger", "message" + count, "user", flag ? 1 : 0));
@@ -153,7 +242,7 @@ namespace ShardingWeb.Controllers
                 {
                     MySqlHelper.ExeTransaction(buidler.ToString());
                     taskStatus.HandledNum = count;
-                    TaskStatus.TaskList[sessionId] = taskStatus;
+                    TaskStatusResult.TaskList[sessionId] = taskStatus;
                 }
 
                 taskStatus.StatusDesc = "执行结束";
