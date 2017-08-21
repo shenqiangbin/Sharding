@@ -27,3 +27,8 @@ p {
 .active {
     border: 1px dotted red;
 }
+
+code{
+    word-wrap:break-word;
+    word-break:break-all;
+}

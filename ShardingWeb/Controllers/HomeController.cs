@@ -197,6 +197,98 @@ where {0} ";
             string selectSql = string.Format(sql, string.Join(" and ", whereList.ToArray()), order, limitStr);
             string countSql = string.Format(countSqlFormat, string.Join(" and ", whereList.ToArray()));
 
+            System.IO.File.AppendAllText("d:/test.txt", selectSql);
+            System.IO.File.AppendAllText("d:/test.txt", "\r\n---------------------------------------");
+            System.IO.File.AppendAllText("d:/test.txt", countSql);
+            System.IO.File.AppendAllText("d:/test.txt", "\r\n---------------------------------------");
+
+            DynamicParameters para = new DynamicParameters();
+            //para.Add($"@userName", "%" + query.UserName + "%");
+
+            var list = MySqlHelper.Query<Log>(selectSql, para);
+            var totalCount = MySqlHelper.ExecuteScalar(countSql, para);
+
+            var pageList = new StaticPagedList<Log>(list, page, itemsPerPage, totalCount);
+            ViewBag.UserResult = pageList;
+            ViewBag.TotalCount = totalCount;
+
+            ViewBag.Msg = $"用时： {(DateTime.Now - startTime).TotalSeconds} 秒";
+
+            return View();
+        }
+
+        public ActionResult LogWithIndex(int page = 1)
+        {
+            DateTime startTime = DateTime.Now;
+
+            var whereList = new List<string>();
+            whereList.Add("1=1");
+
+            string sql = @"
+select * from (select *,(@rowNum:=@rowNum+1) as Number from (
+	select * from log where {0} and date <= (select date from log where 1=1 order by date desc limit {1},1) order by date desc limit 0,{2}
+)t,(Select (@rowNum :=0) ) b) tt;
+";
+
+            string countSqlFormat = @"
+SELECT 
+	count(id)
+ FROM log
+where {0} ";
+
+            int currentPage = page;
+            int itemsPerPage = 10;
+
+            string selectSql = string.Format(sql, string.Join(" and ", whereList.ToArray()), (currentPage - 1) * itemsPerPage + 1, itemsPerPage);
+            string countSql = string.Format(countSqlFormat, string.Join(" and ", whereList.ToArray()));
+
+            System.IO.File.AppendAllText("d:/test.txt", selectSql);
+            System.IO.File.AppendAllText("d:/test.txt", "\r\n---------------------------------------");
+            System.IO.File.AppendAllText("d:/test.txt", countSql);
+            System.IO.File.AppendAllText("d:/test.txt", "\r\n---------------------------------------");
+
+            DynamicParameters para = new DynamicParameters();
+            //para.Add($"@userName", "%" + query.UserName + "%");
+
+            var list = MySqlHelper.Query<Log>(selectSql, para);
+            var totalCount = MySqlHelper.ExecuteScalar(countSql, para);
+
+            var pageList = new StaticPagedList<Log>(list, page, itemsPerPage, totalCount);
+            ViewBag.UserResult = pageList;
+            ViewBag.TotalCount = totalCount;
+
+            ViewBag.Msg = $"用时： {(DateTime.Now - startTime).TotalSeconds} 秒";
+
+            return View();
+        }
+
+        public ActionResult LogWithSomeField(int page = 1)
+        {
+            DateTime startTime = DateTime.Now;
+
+            var whereList = new List<string>();
+            whereList.Add("1=1");
+
+            string sql = @"
+select id,date from log where {0} and datetimestamp <= (select datetimestamp from log where 1=1 order by datetimestamp desc limit {1},1) order by datetimestamp desc limit 0,{2};
+";
+            string countSqlFormat = @"
+SELECT 
+	count(id)
+ FROM log
+where {0} ";
+
+            int currentPage = page;
+            int itemsPerPage = 10;
+
+            string selectSql = string.Format(sql, string.Join(" and ", whereList.ToArray()), (currentPage - 1) * itemsPerPage + 1, itemsPerPage);
+            string countSql = string.Format(countSqlFormat, string.Join(" and ", whereList.ToArray()));
+
+            System.IO.File.AppendAllText("d:/test.txt", selectSql);
+            System.IO.File.AppendAllText("d:/test.txt", "\r\n---------------------------------------");
+            System.IO.File.AppendAllText("d:/test.txt", countSql);
+            System.IO.File.AppendAllText("d:/test.txt", "\r\n---------------------------------------");
+
             DynamicParameters para = new DynamicParameters();
             //para.Add($"@userName", "%" + query.UserName + "%");
 

@@ -1,0 +1,80 @@
+﻿
+@{
+    ViewBag.Title = "LogWithIndex";
+    var userResult = ViewBag.UserResult as IPagedList<ShardingWeb.Models.Log>;
+}
+
+<h2>日志列表</h2>
+
+@*<div class="input-group">
+        <span class="input-group-addon">用户名</span>
+        <input id="username" class="form-control" type="text" name="username" value="@ViewBag.UserName" />
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <button class="btn btn-default" type="button" onclick="search()">查找</button>
+    </div>*@
+
+<p></p>
+
+<table class="table  table-bordered table-hover ">
+    <tr>
+        <td>Id</td>
+        <td>时间</td>
+        <td>线程</td>
+        <td>级别</td>
+        <td>记录者</td>
+        <td>异常信息</td>
+        <td>消息</td>
+        <td>用户id</td>
+    </tr>
+
+    @if (userResult != null)
+    {
+        foreach (var item in userResult)
+        {
+            <tr>
+                <td>@item.Id</td>
+                <td>@item.Date</td>
+                <td>@item.Thread</td>
+                <td>@item.Level</td>
+                <td>@item.Logger</td>
+                <td>@item.Exception</td>
+                <td>@item.Message</td>
+                <td>@item.UserId</td>
+            </tr>
+        }
+    }
+    else
+    {
+        <tr>
+            <td colspan="5">没有数据～</td>
+        </tr>
+    }
+</table>
+
+记录条数：<span>@(string.Format("{0:0,0}", ViewBag.TotalCount))</span> 总页数： <span>@(string.Format("{0:0,0}", userResult.PageCount))</span>
+@Html.PagedListPager(userResult,
+        page => Url.Action("LogWithSomeField", new { page = page, username = ViewBag.UserName }), PagedListRenderOptions.ClassicPlusFirstAndLast)
+
+<h4 id="msg">
+    @ViewBag.Msg
+</h4>
+
+@section footer{
+    <script>
+
+        //点击查询按钮
+        //function search() {
+        //    var pageIndex = 1;
+        //    var username = $("input[name=username]").val();
+        //    window.location.href = g_appPath + "/user?" + "username=" + username + "&page=" + pageIndex;
+        //}
+
+        $('.pagination-container').find('a').each(function () {
+            $(this).click(function () {
+                $("#msg").html('加载中....');
+            });
+        });
+
+    </script>
+}
+

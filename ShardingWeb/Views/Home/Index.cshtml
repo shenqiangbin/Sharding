@@ -21,6 +21,8 @@
 <div class="well">
     @Html.ActionLink("数据库管理", "DB", "Home", new { @class = "al" })
     @Html.ActionLink("查看数据", "Log", "Home", new { @class = "al" })
+    @Html.ActionLink("查看数据withIndex", "LogWithIndex", "Home", new { @class = "al" })
+    @Html.ActionLink("查看数据withSomeField", "LogWithSomeField", "Home", new { @class = "al" })
 </div>
 
 <h4>情况分析</h4>
@@ -49,6 +51,17 @@
 
     首先考虑建立索引
     <code>
-        CREATE INDEX `idx_log_date`  ON `shardingdb`.`log` (date) COMMENT '' ALGORITHM DEFAULT LOCK DEFAULT
+        CREATE INDEX `idx_log_date`  ON `shardingdb`.`log` (date desc) COMMENT '' ALGORITHM DEFAULT LOCK DEFAULT
     </code>
+    <br />
+    建立索引后，没有什么效果，仍然需要遍历很多条记录。分析一下这条查询，按日期倒序排列，然后分页，如果我们取第9000页的数据，除了上面的方法外，
+    我们还可以先取到第9000页第一条数据的日期，然后通过日期先去掉第9000页之前的数据。我们要找的就是日期小于等于第9000页第一条数据的日期，且拿前10条
+    然后修改分页语句，如下：
+    <code>
+        @Html.Raw(@"select * from (select *,(@rowNum:=@rowNum+1) as Number from (
+        select * from log where 1=1 and date <= (select date from log where 1=1 order by date desc limit 999991,1) order by date desc limit 0,10
+        )t,(Select (@rowNum :=0) ) b) tt;")
+    </code>
+    <br />
+    网上说使用partion分区有效果，可是分了半天，不管作用。
 </p>
